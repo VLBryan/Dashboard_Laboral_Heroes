@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 
-from src.cargar_datos import build_all
+from config import *
+from src.cargar_datos import build_all, load_df_cache
 from src import metricas
 from src import graficos
 
@@ -38,21 +39,36 @@ h1 {
 </style>
 """, unsafe_allow_html=True)
 
-# ==================================
-# CARGA DE DATOS
-# ==================================
-
-@st.cache_data
+@st.cache_data(ttl=600)
 def cargar_datos():
 
-    datos = build_all(
-        db_name="TU_DATABASE"
+    usuarios_path = os.path.join(
+        CACHE_DIR,
+        "Usuarios_Master.csv"
     )
 
-    return datos["df_metricas"]
+    # Intentar leer cache
+    try:
 
+        if os.path.exists(usuarios_path):
 
-df = cargar_datos()
+            return load_df_cache(
+                usuarios_path,
+                con_fecha=False
+            )
+
+    except Exception as e:
+
+        st.warning(
+            f"No se pudo leer cache: {e}"
+        )
+
+    # Si falla → Mongo
+    try:
+        return build_all(DB_NAME, MONGO_URI, cache_dir=CACHE_DIR)
+    except Exception as e:
+        st.error(f"Error al cargar datos desde Mongo: {e}")
+        return pd.DataFrame()
 
 # ==================================
 # HEADER
@@ -68,6 +84,10 @@ st.divider()
 # ==================================
 
 st.sidebar.header("Filtros")
+
+cargar_datos.clear()
+df = build_all(DB_NAME, MONGO_URI, cache_dir=CACHE_DIR)
+print(df.columns.tolist())
 
 modalidades = sorted(
     df["modalidad"]

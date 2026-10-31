@@ -64,7 +64,8 @@ def build_all(db_name: str, mongo_uri: Optional[str] = None, cache_dir: str = ".
     Cvs = pd.DataFrame(list(db.cvs.find({}, {"user": 1, "profession": 1})))
     #Idioma = pd.DataFrame(list(db.languages.find({}, {"user": 1, "language": 1, "level": 1})))
 
-    Usuarios_Master = Usuarios.merge(Cvs, on="user", how="left")
+
+    Usuarios_Master = Usuarios.merge(Cvs, left_on="_id", right_on="user", how="left")
 
 
     # -------------------------
@@ -73,6 +74,4 @@ def build_all(db_name: str, mongo_uri: Optional[str] = None, cache_dir: str = ".
     os.makedirs(cache_dir, exist_ok=True)
     save_df_cache(Usuarios_Master, os.path.join(cache_dir, "Usuarios_Master.csv"))
     
-    return {
-        "df_metricas": Usuarios_Master
-    }
+    return Usuarios_Master
